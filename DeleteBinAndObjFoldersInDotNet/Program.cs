@@ -27,40 +27,60 @@ namespace CleanUpUtility
                 return;
             }
 
+            bool? deleteAllBin = null;
+            bool? deleteAllObj = null;
+
             foreach (var solutionFile in solutionFiles)
             {
                 Console.WriteLine($"Found solution: {solutionFile}");
 
                 string solutionDirectory = Path.GetDirectoryName(solutionFile);
-                DeleteFolders(solutionDirectory, "bin");
-                DeleteFolders(solutionDirectory, "obj");
+
+                deleteAllBin = DeleteFolders(solutionDirectory, "bin", deleteAllBin);
+                deleteAllObj = DeleteFolders(solutionDirectory, "obj", deleteAllObj);
             }
 
             Console.WriteLine("Process completed.");
         }
 
-        static void DeleteFolders(string solutionDirectory, string folderName)
+        static bool? DeleteFolders(string solutionDirectory, string folderName, bool? deleteAll)
         {
             var folders = Directory.GetDirectories(solutionDirectory, folderName, SearchOption.AllDirectories);
             foreach (var folder in folders)
             {
                 Console.WriteLine($"Found {folderName} directory: {folder}");
-                Console.Write("Do you want to delete it? (Y/N): ");
-                var choice = Console.ReadLine();
 
-                if (choice?.ToUpper() == "Y")
+                if (deleteAll == null)
                 {
-                    try
+                    Console.Write("Do you want to delete it? (Y/N/YA/NA): ");
+                    var choice = Console.ReadLine();
+
+                    if (choice?.ToUpper() == "YA")
                     {
-                        Directory.Delete(folder, true);
-                        Console.WriteLine($"Deleted {folderName} directory: {folder}");
+                        deleteAll = true;
                     }
-                    catch (Exception ex)
+                    else if (choice?.ToUpper() == "NA")
                     {
-                        Console.WriteLine($"Error deleting {folderName} directory: {ex.Message}");
+                        deleteAll = false;
+                    }
+                    else if (choice?.ToUpper() != "Y")
+                    {
+                        continue;
                     }
                 }
+
+                try
+                {
+                    Directory.Delete(folder, true);
+                    Console.WriteLine($"Deleted {folderName} directory: {folder}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error deleting {folderName} directory: {ex.Message}");
+                }
             }
+
+            return deleteAll;
         }
     }
 }
