@@ -1,46 +1,96 @@
-﻿static bool? DeleteFolders(string solutionDirectory, string folderName, bool? deleteAll)
+﻿using System;
+using System.IO;
+using System.Linq;
+
+namespace CleanUpUtility
 {
-    var folders = Directory.GetDirectories(solutionDirectory, folderName, SearchOption.AllDirectories);
-    foreach (var folder in folders)
+    class Program
     {
-        Console.WriteLine($"Found {folderName} directory: {folder}");
-
-        if (deleteAll == null)
+        static void Main(string[] args)
         {
-            Console.Write("Do you want to delete it? (Y/N/YA/NA): ");
-            var choice = Console.ReadLine().ToUpper();
+            Console.WriteLine("Enter the path of the root directory to search for .NET solution folders:");
+            string rootPath = Console.ReadLine();
 
-            switch (choice)
+            // Check if root directory exists
+            if (!Directory.Exists(rootPath))
             {
-                case "YA":
-                    deleteAll = true;
-                    break;
-                case "NA":
-                    deleteAll = false;
-                    break;
-                case "Y":
-                    break;
-                case "N":
-                    continue;
-                default:
-                    Console.WriteLine("Invalid choice. Skipping this folder.");
-                    continue;
+                Console.WriteLine($"Directory '{rootPath}' not found.");
+                Console.ReadLine();
+                return;
             }
+
+            // Get all .sln files in directory and its sub directories
+            var solutionFiles = Directory.GetFiles(rootPath, "*.sln", SearchOption.AllDirectories);
+
+            if (!solutionFiles.Any())
+            {
+                Console.WriteLine("No .NET solution files found in the specified directory.");
+                Console.ReadLine();
+                return;
+            }
+
+            bool? deleteAllBin = null;
+            bool? deleteAllObj = null;
+
+            foreach (var solutionFile in solutionFiles)
+            {
+                Console.WriteLine($"Found solution: {solutionFile}");
+
+                string solutionDirectory = Path.GetDirectoryName(solutionFile);
+
+                deleteAllBin = DeleteFolders(solutionDirectory, "bin", deleteAllBin);
+                deleteAllObj = DeleteFolders(solutionDirectory, "obj", deleteAllObj);
+            }
+
+            Console.WriteLine("Process completed.");
+            Console.WriteLine("Press Enter to exit...");
+            Console.ReadLine();
         }
 
-        if (deleteAll == true) // Only attempt deletion if "Yes" or "Yes to All" was chosen.
+        static bool? DeleteFolders(string solutionDirectory, string folderName, bool? deleteAll)
         {
-            try
+            var folders = Directory.GetDirectories(solutionDirectory, folderName, SearchOption.AllDirectories);
+            foreach (var folder in folders)
             {
-                Directory.Delete(folder, true);
-                Console.WriteLine($"Deleted {folderName} directory: {folder}");
+                Console.WriteLine($"Found {folderName} directory: {folder}");
+
+                if (deleteAll == null)
+                {
+                    Console.Write("Do you want to delete it? (Y/N/YA/NA): ");
+                    var choice = Console.ReadLine().ToUpper();
+
+                    switch (choice)
+                    {
+                        case "YA":
+                            deleteAll = true;
+                            break;
+                        case "NA":
+                            deleteAll = false;
+                            break;
+                        case "Y":
+                            break;
+                        case "N":
+                        default:
+                            Console.WriteLine("Skipping this folder.");
+                            continue;
+                    }
+                }
+
+                if (deleteAll == true) // Only attempt deletion if "Yes" or "Yes to All" was chosen.
+                {
+                    try
+                    {
+                        Directory.Delete(folder, true);
+                        Console.WriteLine($"Deleted {folderName} directory: {folder}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error deleting {folderName} directory: {ex.Message}");
+                    }
+                }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error deleting {folderName} directory: {ex.Message}");
-            }
+
+            return deleteAll;
         }
     }
-
-    return deleteAll;
 }
